@@ -1,0 +1,8 @@
+**/.DS_Store
+**/.claude/
+**/Manifest.toml
+**/.vscode/
+**/.ipynb_checkpoints
+*.txt
+*.png
+CLAUDE.md

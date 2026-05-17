@@ -8,6 +8,7 @@ using QuantumOptics
 using OrdinaryDiffEq
 using LinearAlgebra
 using Printf
+using JLD2
 
 # ===== BASES AND OPERATORS =====
 
@@ -89,13 +90,13 @@ end
                               g0::Float64, τ::Float64)
     t_mod = mod(t, 4τ)
     if t_mod < τ
-        return (+Δ, ϕ1, +g0)
+        return (+Δ, ϕ1, +g0)       # segment 1
     elseif t_mod < 2τ
-        return (-Δ, ϕ2, +g0)
+        return (-Δ, ϕ2, +g0)       # segment 2
     elseif t_mod < 3τ
-        return (+Δ, ϕ1, -g0)
+        return (-Δ, ϕ2, -g0)       # segment 3 = echo of seg 2 with g→−g
     else
-        return (-Δ, ϕ2, -g0)
+        return (+Δ, ϕ1, -g0)       # segment 4 = echo of seg 1 with g→−g
     end
 end
 
@@ -257,6 +258,218 @@ function sweep_P(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
     return results
 end
 
+# ===== EXTERNAL-PULSE HAMILTONIAN =====
+#
+# A second time-dependent Hamiltonian path used when the four control
+# amplitudes (ε₁..ε₄) come from a file (e.g. GRAPE output). The lab-frame
+# decomposition is
+#       H(t) = ε₁(t)·X̂Jx + ε₂(t)·P̂Jx + ε₃(t)·X̂Jy + ε₄(t)·P̂Jy,
+# with X̂ = a + a†, P̂ = i(a† − a). Pulses are sampled on `tlist` and
+# linearly interpolated between nodes — matches the GRAPE/ExpProp convention.
+
+"""Closure returning H(t) for `timeevolution.schroedinger_dynamic`,
+   given four piecewise-linear control amplitudes on `tlist`."""
+function make_H_dynamic_from_pulses(sb,
+                                    ε1::Vector{Float64}, ε2::Vector{Float64},
+                                    ε3::Vector{Float64}, ε4::Vector{Float64},
+                                    tlist::Vector{Float64})
+    @assert length(ε1) == length(ε2) == length(ε3) == length(ε4) == length(tlist)
+    a, ad = sb.a, sb.ad
+    X̂ = a + ad
+    P̂ = 1im * (ad - a)
+    XJx = X̂ ⊗ sb.Jx
+    PJx = P̂ ⊗ sb.Jx
+    XJy = X̂ ⊗ sb.Jy
+    PJy = P̂ ⊗ sb.Jy
+
+    n = length(tlist)
+    t0, tf = tlist[1], tlist[end]
+
+    @inline function interp(arr, t)
+        if t <= t0;  return arr[1]
+        elseif t >= tf; return arr[end]; end
+        i = searchsortedlast(tlist, t)
+        i = clamp(i, 1, n - 1)
+        α = (t - tlist[i]) / (tlist[i+1] - tlist[i])
+        return arr[i] * (1 - α) + arr[i+1] * α
+    end
+
+    return function H_at(t, _)
+        e1 = interp(ε1, t); e2 = interp(ε2, t)
+        e3 = interp(ε3, t); e4 = interp(ε4, t)
+        return e1 * XJx + e2 * PJx + e3 * XJy + e4 * PJy
+    end
+end
+
+"""Run the GHZ-fidelity simulation under control pulses loaded from a JLD2
+file produced by ion_GRAPE.jl. The file is expected to hold the keys
+`ε1, ε2, ε3, ε4, tlist, T, ζ, N, nmax`. Returns the same kind of
+result tuple as `simulate(...)`."""
+function simulate_from_pulses(pulse_file::String;
+                              init::Symbol=:GHZ,
+                              nmax::Union{Nothing,Int}=nothing)
+    data = load(pulse_file)
+    ε1, ε2, ε3, ε4 = data["ε1"], data["ε2"], data["ε3"], data["ε4"]
+    tlist = collect(Float64, data["tlist"])
+    T     = Float64(data["T"])
+    ζ     = Float64(data["ζ"])
+    N     = Int(data["N"])
+    nmax  = something(nmax, Int(data["nmax"]))
+
+    sb = build_spinboson(N, nmax)
+
+    @printf("=== Simulation from external pulses (JLD2) ===\n")
+    @printf("file = %s\n", pulse_file)
+    @printf("N = %d, nmax = %d, init = %s\n", N, nmax, init)
+    @printf("ζ = %.6f, T = %.6f ms, nt = %d\n", ζ, T, length(tlist))
+    if haskey(data, "F_proc")
+        @printf("(stored unitary F_proc from optimisation: %.6f)\n",
+                data["F_proc"])
+    end
+
+    psi0       = build_initial(N, sb; init)
+    psi_target = build_target(ζ, N, sb; init)
+
+    @printf("Target ⟨n⟩ = %.4f (analytic sinh²(ζJ) = %.4f)\n",
+            real(expect(sb.n_op, psi_target)), sinh(ζ * N/2)^2)
+
+    Hf = make_H_dynamic_from_pulses(sb, ε1, ε2, ε3, ε4, tlist)
+
+    @printf("\nIntegrating Schrödinger equation under loaded pulses…\n")
+    tout, psi_t = timeevolution.schroedinger_dynamic(
+        tlist, psi0, Hf;
+        alg=Tsit5(), abstol=1e-10, reltol=1e-10,
+        tstops=tlist, maxiters=10_000_000,
+    )
+    @printf("Integration complete. %d saved points.\n", length(tout))
+
+    fidelities = Float64[abs2(dagger(psi_target) * ψ) for ψ in psi_t]
+    n_avgs     = Float64[real(expect(sb.n_op, ψ))     for ψ in psi_t]
+    norms      = Float64[norm(ψ)                       for ψ in psi_t]
+
+    @printf("\n--- Final state ---\n")
+    @printf("Fidelity:  %.8f\n", fidelities[end])
+    @printf("⟨n⟩:       %.6f\n", n_avgs[end])
+    @printf("‖ψ‖:       %.10f\n", norms[end])
+
+    return (; sb, tout, psi_t, fidelities, n_avgs, norms,
+              psi0, psi_target, psi_final=psi_t[end],
+              F_final = fidelities[end],
+              N, nmax, ζ, T, init,
+              # Filler entries so plot_results works without protocol params
+              P = 0, ℓ = 0, ϕ1 = 0.0, ϕ2 = 0.0,
+              g0 = 0.0, Δ_abs = 0.0, τ = T, tf = T)
+end
+
+# ===== UNITARY VERIFICATION =====
+
+"""Build the target unitary of Eq.(5):
+   U_target = exp((ζ* â² − ζ â†²) Ĵz / 2).
+   For real ζ, this is block-diagonal in the spin basis,
+   U_target = Σ_m S(ζm) ⊗ |m⟩⟨m|, since Ĵz|m⟩ = m|m⟩."""
+function build_target_unitary(ζ::Float64, N::Int, sb)
+    j = N / 2
+    dim_s = N + 1
+    U = nothing
+    for idx_s in 1:dim_s
+        m = j - (idx_s - 1)                         # descending m
+        S_b  = squeeze(sb.b_fock, ζ * m)            # exp((ζm)(a² − a†²)/2)
+        proj = projector(basisstate(sb.b_spin, idx_s))
+        term = S_b ⊗ proj
+        U = U === nothing ? term : U + term
+    end
+    return U
+end
+
+"""State-independent check that U(T), generated by the stroboscopic protocol,
+equals the target Eq.(5). Evolves every basis state |n⟩_b ⊗ |m⟩_s with
+n ≤ n_test_max (so the target stays inside the truncation), then forms
+
+    score = Σ_{k∈V} ⟨U_target k | U(T) k⟩ = Tr_V(U_target† U(T)),
+
+and reports
+
+    F_proc = |score|² / d_V²              (process fidelity)
+    F_avg  = (d_V·F_proc + 1)/(d_V + 1)   (average gate fidelity)
+
+Both are 1 iff U(T) = U_target on V up to a global phase.
+Use a Fock cutoff `nmax` well above the squeezed support of |n_test_max⟩ so
+that target leakage is negligible.
+"""
+function verify_unitary(; N::Int=1, nmax::Int=40, z_target::Float64=0.5,
+                         P::Int=5, ℓ::Int=1,
+                         ϕ1::Float64=Float64(π), ϕ2::Float64=0.0,
+                         n_test_max::Int=4)
+    sb = build_spinboson(N, nmax)
+    pp = protocol_params(N, z_target, P, ℓ)
+    (; g0, ζ, Δ_abs, τ, tf) = pp
+
+    @printf("=== Unitary verification U(T) vs Eq.(5) ===\n")
+    @printf("N = %d, nmax = %d, z_target = %.3f, P = %d, ℓ = %d\n",
+            N, nmax, z_target, P, ℓ)
+    @printf("ϕ₁ = %.4f, ϕ₂ = %.4f\n", ϕ1, ϕ2)
+    @printf("g = 2π × %.3f kHz, |Δ| = 2π × %.3f kHz\n", g0/(2π), Δ_abs/(2π))
+    @printf("|ζ| = %.6f, τ = %.6f ms, tf = %.6f ms\n", ζ, τ, tf)
+
+    U_target = build_target_unitary(ζ, N, sb)
+
+    Hf = make_H_dynamic(sb, Δ_abs, ϕ1, ϕ2, g0, τ)
+    tstops = Float64[]
+    for p in 0:(P - 1)
+        t0 = 4p * τ
+        push!(tstops, t0, t0 + τ, t0 + 2τ, t0 + 3τ)
+    end
+    push!(tstops, tf)
+    unique!(sort!(tstops))
+
+    d = length(sb.b_full)
+    dim_s = N + 1
+    n_test_max = min(n_test_max, nmax)
+    test_indices = Int[]
+    for idx_b in 1:(n_test_max + 1), idx_s in 1:dim_s
+        push!(test_indices, (idx_b - 1) * dim_s + idx_s)
+    end
+    d_V = length(test_indices)
+    @printf("Test subspace V: |n⟩_b ⊗ |m⟩_s with n ≤ %d → dim = %d\n",
+            n_test_max, d_V)
+
+    @printf("Integrating %d trajectories…\n", d_V)
+    score = ComplexF64(0)
+    norm_dev   = 0.0
+    target_dev = 0.0     # ‖U_target |k⟩‖² − 1 in the truncated space
+    for k in test_indices
+        ψ0_data = zeros(ComplexF64, d)
+        ψ0_data[k] = 1.0
+        ψ0 = Ket(sb.b_full, ψ0_data)
+
+        _, ψt = timeevolution.schroedinger_dynamic(
+            [0.0, tf], ψ0, Hf;
+            alg=Tsit5(), abstol=1e-10, reltol=1e-10,
+            tstops=tstops, maxiters=10_000_000,
+        )
+        ψ_actual = ψt[end]
+        ψ_target = U_target * ψ0
+
+        score      += dagger(ψ_target) * ψ_actual
+        norm_dev    = max(norm_dev,   abs(1.0 - norm(ψ_actual)^2))
+        target_dev  = max(target_dev, abs(1.0 - norm(ψ_target)^2))
+    end
+
+    F_proc = abs2(score) / d_V^2
+    F_avg  = (d_V * F_proc + 1) / (d_V + 1)
+    @printf("\nProcess fidelity   F_proc = %.8f\n", F_proc)
+    @printf("Avg gate fidelity  F_avg  = %.8f\n", F_avg)
+    @printf("|score|/d_V               = %.8f\n", abs(score) / d_V)
+    @printf("arg(score)                = %+.4f rad  (global phase)\n",
+            angle(score))
+    @printf("Max ‖U(T)|k⟩‖² − 1        = %.2e   (integrator unitarity)\n",
+            norm_dev)
+    @printf("Max ‖U_target|k⟩‖² − 1    = %.2e   (target truncation leak)\n",
+            target_dev)
+
+    return (; F_proc, F_avg, score, U_target, sb, ζ, tf, n_test_max, d_V)
+end
+
 # ===== VISUALIZATION =====
 
 using Plots
@@ -336,18 +549,57 @@ function plot_results(res; save_path::String="spinboson_sim.png")
     return fig
 end
 
+"""4-panel pulse + infidelity figure: Δ(t), ϕ(t), g(t), 1−F(t) on a log scale.
+   The trailing sample of g(t) is dropped so the final segment-boundary flip
+   isn't drawn."""
+function plot_pulse_fidelity(res; save_path::String="spinboson_pulse.png")
+    (; tout, fidelities, P, τ, tf, Δ_abs, g0, ϕ1, ϕ2, N, ζ) = res
+
+    default(fontfamily="Computer Modern", titlefontsize=13, guidefontsize=11,
+            tickfontsize=9, legendfontsize=9, linewidth=2, dpi=200)
+
+    t_pulse = collect(range(0.0, tf, length=4000))
+    Δ_vals = Float64[]; ϕ_vals = Float64[]; g_vals = Float64[]
+    for t in t_pulse
+        Δe, ϕe, ge = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ)
+        push!(Δ_vals, Δe / (2π))
+        push!(ϕ_vals, ϕe)
+        push!(g_vals, ge / (2π))
+    end
+
+    p1 = plot(t_pulse, Δ_vals, xlabel="t (ms)", ylabel="Δ/(2π) [kHz]",
+              title="Δ(t)", color=:orange, legend=false)
+    p2 = plot(t_pulse, ϕ_vals, xlabel="t (ms)", ylabel="ϕ [rad]",
+              title="ϕ(t)", color=:green, legend=false)
+    p3 = plot(t_pulse[1:end-1], g_vals[1:end-1],
+              xlabel="t (ms)", ylabel="g/(2π) [kHz]",
+              title="g(t)", color=:purple, legend=false)
+
+    infid = max.(1 .- fidelities, 1e-16)
+    p4 = plot(tout, infid, xlabel="t (ms)", ylabel="1 − F",
+              title="1 − F(t)", color=:blue, yscale=:log10, legend=false)
+
+    fig = plot(p1, p2, p3, p4, layout=(2, 2), size=(1100, 800),
+               plot_title=@sprintf("N=%d, z=%.1f, P=%d, ℓ=1   F=%.4f",
+                                    N, ζ * N/2, P, fidelities[end]),
+               plot_titlefontsize=14, margin=5Plots.mm)
+    savefig(fig, save_path)
+    println("\nPulse plot saved to: $save_path")
+    return fig
+end
+
 # ===== RUN =====
 if abspath(PROGRAM_FILE) == @__FILE__
-    res = simulate(N=1, nmax=20, z_target=1.0, P=5)
+    println("="^60)
+    println("Step 1 — GHZ-state fidelity check  (N=1, z=0.5)")
+    println("="^60)
+    res = simulate(N=1, nmax=20, z_target=0.5, P=5)
+    @printf("\nExpected ⟨n⟩ ≈ sinh²(ζJ) = sinh²(0.5) = %.4f\n", sinh(0.5)^2)
+    @printf("Final fidelity (GHZ → S(ζJz)|ψ_GHZ⟩): %.6f\n", res.F_final)
+    plot_results(res; save_path="spinboson_QO_N1_z05_GHZ.png")
 
-    println("\n" * "="^50)
-    println("Quick verification:")
-    @printf("  Expected ⟨n⟩ ≈ sinh²(1) = %.4f\n", sinh(1.0)^2)
-    @printf("  Final fidelity: %.6f\n", res.F_final)
-
-    plot_results(res; save_path="spinboson_QO_N1_z1.png")
-
-    println("\n" * "="^50)
-    res2 = simulate(N=1, nmax=20, z_target=0.3, P=1)
-    plot_results(res2; save_path="spinboson_QO_N1_z03.png")
+    println("\n" * "="^60)
+    println("Step 2 — State-independent unitary check  U(T) ≟ Eq.(5)")
+    println("="^60)
+    vres = verify_unitary(N=1, nmax=40, z_target=0.5, P=5, n_test_max=4)
 end

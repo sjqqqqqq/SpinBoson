@@ -6,3 +6,5 @@
 *.txt
 *.png
 CLAUDE.md
+*.jld2
+*.pptx

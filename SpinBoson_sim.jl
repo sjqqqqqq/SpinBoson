@@ -85,9 +85,13 @@ end
 # ===== PULSE SEQUENCE =====
 
 """Stroboscopic pulse — 4 segments per cycle, each of duration τ = 2πℓ/|Δ|.
-   Returns (Δ_eff, ϕ_eff, g_eff) at time t."""
+   For t ≥ t_strobo the controls are held at (Δ=0, ϕ=0, g=+g0)."""
 @inline function pulse_params(t::Float64, Δ::Float64, ϕ1::Float64, ϕ2::Float64,
-                              g0::Float64, τ::Float64)
+                              g0::Float64, τ::Float64;
+                              t_strobo::Float64=Inf)
+    if t >= t_strobo
+        return (0.0, 0.0, +g0)
+    end
     t_mod = mod(t, 4τ)
     if t_mod < τ
         return (+Δ, ϕ1, +g0)       # segment 1
@@ -105,10 +109,11 @@ end
 """Closure that returns H(t) for `timeevolution.schroedinger_dynamic`.
    H(t) = g(t)·a·[Jx e^{−iΔ(t)t} + Jy e^{+iΔ(t)t} e^{−iϕ(t)}] + h.c."""
 function make_H_dynamic(sb, Δ_abs::Float64, ϕ1::Float64, ϕ2::Float64,
-                       g0::Float64, τ::Float64)
+                       g0::Float64, τ::Float64;
+                       t_strobo::Float64=Inf)
     aJx, aJy, adJx, adJy = sb.aJx, sb.aJy, sb.adJx, sb.adJy
     return function H_at(t, _)
-        Δ_eff, ϕ_eff, g_eff = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ)
+        Δ_eff, ϕ_eff, g_eff = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ; t_strobo=t_strobo)
         c1 = g_eff * cis(-Δ_eff * t)                       # coeff of a⊗Jx
         c2 = g_eff * cis(+Δ_eff * t) * cis(-ϕ_eff)         # coeff of a⊗Jy
         return c1 * aJx + c2 * aJy + conj(c1) * adJx + conj(c2) * adJy
@@ -141,17 +146,20 @@ Parameters mirror ion_test.jl:
 """
 function simulate(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
                    P::Int=5, ℓ::Int=1, ϕ1::Float64=Float64(π), ϕ2::Float64=0.0,
-                   init::Symbol=:GHZ)
+                   init::Symbol=:GHZ, t_free::Float64=0.0)
     sb = build_spinboson(N, nmax)
     pp = protocol_params(N, z_target, P, ℓ)
-    (; g0, ζ, Δ_abs, τ, tf) = pp
+    (; g0, ζ, Δ_abs, τ) = pp
+    t_strobo = pp.tf
+    tf = t_strobo + t_free
 
     @printf("=== Spin-dependent squeezing (QuantumOptics.jl) ===\n")
     @printf("N = %d, J = %.1f, nmax = %d\n", N, N/2, nmax)
     @printf("z_target = %.3f, P = %d, ℓ = %d\n", z_target, P, ℓ)
     @printf("ϕ₁ = %.4f, ϕ₂ = %.4f, init = %s\n", ϕ1, ϕ2, init)
     @printf("g = 2π × %.3f kHz, |Δ| = 2π × %.3f kHz\n", g0/(2π), Δ_abs/(2π))
-    @printf("|ζ| = %.6f, τ = %.6f ms, tf = %.6f ms\n", ζ, τ, tf)
+    @printf("|ζ| = %.6f, τ = %.6f ms, t_strobo = %.6f ms, t_free = %.6f ms, tf = %.6f ms\n",
+            ζ, τ, t_strobo, t_free, tf)
     @printf("dim(H) = %d\n", length(sb.b_full))
 
     psi0       = build_initial(N, sb; init)
@@ -167,14 +175,14 @@ function simulate(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
         t0 = 4p * τ
         push!(tstops, t0, t0 + τ, t0 + 2τ, t0 + 3τ)
     end
-    push!(tstops, tf)
+    push!(tstops, t_strobo, tf)
     unique!(sort!(tstops))
 
     n_save = max(500, 100 * P)
     saveat_dense = collect(range(0.0, tf, length=n_save))
     saveat_all   = sort!(unique!(vcat(saveat_dense, tstops)))
 
-    Hf = make_H_dynamic(sb, Δ_abs, ϕ1, ϕ2, g0, τ)
+    Hf = make_H_dynamic(sb, Δ_abs, ϕ1, ϕ2, g0, τ; t_strobo=t_strobo)
     @printf("\nIntegrating Schrödinger equation via QuantumOptics…\n")
     tout, psi_t = timeevolution.schroedinger_dynamic(
         saveat_all, psi0, Hf;
@@ -208,7 +216,7 @@ function simulate(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
               psi0, psi_target, psi_final = psi_t[end],
               F_final = fidelities[end],
               N, nmax, P, ℓ, ϕ1, ϕ2, init,
-              g0, ζ, Δ_abs, τ, tf)
+              g0, ζ, Δ_abs, τ, tf, t_strobo, t_free)
 end
 
 # ===== SWEEP UTILITY =====
@@ -523,10 +531,11 @@ function plot_results(res; save_path::String="spinboson_sim.png")
          label="Final ψ(tf)", color=:blue, alpha=0.6, bar_width=0.4)
 
     # Panel 4 — pulse sequence
+    t_strobo = hasproperty(res, :t_strobo) ? res.t_strobo : tf
     t_pulse = range(0.0, tf, length=1000)
     Δ_vals = Float64[]; g_vals = Float64[]
     for t in t_pulse
-        Δ_eff, _, g_eff = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ)
+        Δ_eff, _, g_eff = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ; t_strobo=t_strobo)
         push!(Δ_vals, Δ_eff / (2π))
         push!(g_vals, g_eff / (2π))
     end
@@ -554,6 +563,7 @@ end
    isn't drawn."""
 function plot_pulse_fidelity(res; save_path::String="spinboson_pulse.png")
     (; tout, fidelities, P, τ, tf, Δ_abs, g0, ϕ1, ϕ2, N, ζ) = res
+    t_strobo = hasproperty(res, :t_strobo) ? res.t_strobo : tf
 
     default(fontfamily="Computer Modern", titlefontsize=13, guidefontsize=11,
             tickfontsize=9, legendfontsize=9, linewidth=2, dpi=200)
@@ -561,7 +571,7 @@ function plot_pulse_fidelity(res; save_path::String="spinboson_pulse.png")
     t_pulse = collect(range(0.0, tf, length=4000))
     Δ_vals = Float64[]; ϕ_vals = Float64[]; g_vals = Float64[]
     for t in t_pulse
-        Δe, ϕe, ge = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ)
+        Δe, ϕe, ge = pulse_params(t, Δ_abs, ϕ1, ϕ2, g0, τ; t_strobo=t_strobo)
         push!(Δ_vals, Δe / (2π))
         push!(ϕ_vals, ϕe)
         push!(g_vals, ge / (2π))

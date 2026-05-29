@@ -1,0 +1,160 @@
+
+============================================================
+  T_frac = 1.0000
+============================================================
+‖ψ_target‖² = 1.0000000000  (should be 1)
+=== ion_GRAPE_displace: |0⟩_b⊗|polarized⟩ → squeeze+displace target ===
+N = 1, nmax = 20, z_target = 0.500, P = 1, ℓ = 1
+ζ = 1.000000, τ = 0.028209 ms
+t_strobo = 0.112838 ms, t_free = 0.112838 ms, T = 0.225676 ms, nt = 400
+
+Initial-guess (extended protocol):  F = 0.999896
+
+Running GRAPE (iter_stop = 400, F_threshold = 0.9900)…
+ iter.        J_T       ǁ∇Jǁ       ǁΔϵǁ         ΔJ   FG(F)    secs
+     0   1.04e-04   1.59e-04        n/a        n/a    1(0)     6.8
+     1   1.04e-04   1.59e-04   1.59e-04  -2.54e-08    1(0)     3.1
+
+--- Optimisation summary ---
+Iterations: 1   Final J_T: 1.040961e-04   ⇒ F ≈ 0.999896
+
+--- Re-propagation diagnostics ---
+F:                  0.99989590
+|⟨φ|ψ(T)⟩|:         0.999948
+arg⟨φ|ψ(T)⟩:        +0.0000 rad   (global phase)
+Max |1 − ‖ψ(T)‖²|:  6.00e-15
+Pulse plot saved to: ion_GRAPE_displace_pol_pulses_Tfrac1000.png
+
+============================================================
+  T_frac = 0.9000
+============================================================
+‖ψ_target‖² = 1.0000000000  (should be 1)
+=== ion_GRAPE_displace: |0⟩_b⊗|polarized⟩ → squeeze+displace target ===
+N = 1, nmax = 20, z_target = 0.500, P = 1, ℓ = 1
+ζ = 1.000000, τ = 0.028209 ms
+t_strobo = 0.112838 ms, t_free = 0.112838 ms, T = 0.203108 ms, nt = 400
+
+Initial-guess (extended protocol):  F = 0.968967
+
+Running GRAPE (iter_stop = 400, F_threshold = 0.9900)…
+ iter.        J_T       ǁ∇Jǁ       ǁΔϵǁ         ΔJ   FG(F)    secs
+     0   3.10e-02   1.62e-03        n/a        n/a    1(0)     2.5
+     1   3.10e-02   1.62e-03   1.62e-03  -2.63e-06    1(0)     2.9
+     2   8.65e-03   1.62e-03   2.85e+01  -2.24e-02    1(0)     2.6
+
+--- Optimisation summary ---
+Iterations: 2   Final J_T: 8.651295e-03   ⇒ F ≈ 0.991349
+
+--- Re-propagation diagnostics ---
+F:                  0.99134871
+|⟨φ|ψ(T)⟩|:         0.995665
+arg⟨φ|ψ(T)⟩:        +0.0040 rad   (global phase)
+Max |1 − ‖ψ(T)‖²|:  2.44e-15
+Pulse plot saved to: ion_GRAPE_displace_pol_pulses_Tfrac900.png
+
+============================================================
+  T_frac = 0.7500
+============================================================
+‖ψ_target‖² = 1.0000000000  (should be 1)
+=== ion_GRAPE_displace: |0⟩_b⊗|polarized⟩ → squeeze+displace target ===
+N = 1, nmax = 20, z_target = 0.500, P = 1, ℓ = 1
+ζ = 1.000000, τ = 0.028209 ms
+t_strobo = 0.112838 ms, t_free = 0.112838 ms, T = 0.169257 ms, nt = 400
+
+Initial-guess (extended protocol):  F = 0.805826
+
+Running GRAPE (iter_stop = 400, F_threshold = 0.9900)…
+ iter.        J_T       ǁ∇Jǁ       ǁΔϵǁ         ΔJ   FG(F)    secs
+     0   1.94e-01   2.89e-03        n/a        n/a    1(0)     2.4
+     1   1.94e-01   2.89e-03   2.89e-03  -8.37e-06    1(0)     2.7
+     2   6.63e-02   2.89e-03   1.16e+02  -1.28e-01    1(0)     2.4
+     3   4.83e-02   1.62e-03   2.76e+01  -1.81e-02    1(0)     2.3
+     4   3.72e-02   1.35e-03   1.32e+01  -1.11e-02    1(0)     2.3
+     5   2.46e-02   5.99e-04   2.83e+01  -1.26e-02    1(0)     2.3
+     6   9.28e-03   5.60e-04   5.79e+01  -1.53e-02    1(0)     2.3
+
+--- Optimisation summary ---
+Iterations: 6   Final J_T: 9.283422e-03   ⇒ F ≈ 0.990717
+
+--- Re-propagation diagnostics ---
+F:                  0.99071658
+|⟨φ|ψ(T)⟩|:         0.995347
+arg⟨φ|ψ(T)⟩:        -0.0533 rad   (global phase)
+Max |1 − ‖ψ(T)‖²|:  1.78e-15
+Pulse plot saved to: ion_GRAPE_displace_pol_pulses_Tfrac750.png
+
+============================================================
+  T_frac = 0.5000
+============================================================
+‖ψ_target‖² = 1.0000000000  (should be 1)
+=== ion_GRAPE_displace: |0⟩_b⊗|polarized⟩ → squeeze+displace target ===
+N = 1, nmax = 20, z_target = 0.500, P = 1, ℓ = 1
+ζ = 1.000000, τ = 0.028209 ms
+t_strobo = 0.112838 ms, t_free = 0.112838 ms, T = 0.112838 ms, nt = 400
+
+Initial-guess (extended protocol):  F = 0.407212
+
+Running GRAPE (iter_stop = 400, F_threshold = 0.9900)…
+ iter.        J_T       ǁ∇Jǁ       ǁΔϵǁ         ΔJ   FG(F)    secs
+     0   5.93e-01   2.01e-03        n/a        n/a    1(0)     2.4
+     1   5.93e-01   2.01e-03   2.01e-03  -4.05e-06    1(0)     2.7
+     2   3.41e-01   2.01e-03   1.21e+03  -2.52e-01    4(0)     9.4
+     3   2.67e-01   2.02e-03   9.17e+01  -7.38e-02    3(0)     7.0
+     4   9.06e-02   1.99e-03   1.70e+02  -1.77e-01    2(0)     4.6
+     5   2.61e-02   1.81e-03   1.22e+02  -6.45e-02    1(0)     2.3
+     6   4.80e-03   1.35e-03   3.94e+01  -2.13e-02    1(0)     2.4
+
+--- Optimisation summary ---
+Iterations: 6   Final J_T: 4.804396e-03   ⇒ F ≈ 0.995196
+
+--- Re-propagation diagnostics ---
+F:                  0.99519560
+|⟨φ|ψ(T)⟩|:         0.997595
+arg⟨φ|ψ(T)⟩:        +2.9719 rad   (global phase)
+Max |1 − ‖ψ(T)‖²|:  6.66e-16
+Pulse plot saved to: ion_GRAPE_displace_pol_pulses_Tfrac500.png
+
+============================================================
+  T_frac = 0.3333
+============================================================
+‖ψ_target‖² = 1.0000000000  (should be 1)
+=== ion_GRAPE_displace: |0⟩_b⊗|polarized⟩ → squeeze+displace target ===
+N = 1, nmax = 20, z_target = 0.500, P = 1, ℓ = 1
+ζ = 1.000000, τ = 0.028209 ms
+t_strobo = 0.112838 ms, t_free = 0.112838 ms, T = 0.075225 ms, nt = 400
+
+Initial-guess (extended protocol):  F = 0.191328
+
+Running GRAPE (iter_stop = 400, F_threshold = 0.9900)…
+ iter.        J_T       ǁ∇Jǁ       ǁΔϵǁ         ΔJ   FG(F)    secs
+     0   8.09e-01   8.90e-04        n/a        n/a    1(0)     2.4
+     1   8.09e-01   8.90e-04   8.90e-04  -7.93e-07    1(0)     2.8
+     2   5.59e-01   8.90e-04   3.11e+02  -2.50e-01   10(0)    23.6
+     3   4.78e-01   9.36e-04   1.57e+02  -8.08e-02    2(0)     4.6
+     4   3.41e-01   1.13e-03   3.03e+02  -1.37e-01    1(0)     2.3
+     5   1.90e-01   1.42e-03   2.55e+02  -1.51e-01    1(0)     2.3
+     6   1.05e-01   1.28e-03   3.20e+02  -8.54e-02    1(0)     2.4
+     7   6.18e-02   1.49e-03   8.50e+01  -4.28e-02    1(0)     2.3
+     8   3.83e-02   6.72e-04   8.00e+01  -2.35e-02    1(0)     2.3
+     9   2.23e-02   3.90e-04   8.99e+01  -1.61e-02    1(0)     2.3
+    10   9.78e-03   2.27e-04   1.67e+02  -1.25e-02    1(0)     2.3
+
+--- Optimisation summary ---
+Iterations: 10   Final J_T: 9.775342e-03   ⇒ F ≈ 0.990225
+
+--- Re-propagation diagnostics ---
+F:                  0.99022466
+|⟨φ|ψ(T)⟩|:         0.995100
+arg⟨φ|ψ(T)⟩:        -0.0645 rad   (global phase)
+Max |1 − ‖ψ(T)‖²|:  8.99e-15
+Pulse plot saved to: ion_GRAPE_displace_pol_pulses_Tfrac333.png
+
+============================================================
+  Sweep summary
+============================================================
+  T_frac       T (ms)       F_init        F_opt   iter
+  1.0000     0.225676     0.999896   0.99989590      1
+  0.9000     0.203108     0.968967   0.99134871      2
+  0.7500     0.169257     0.805826   0.99071658      6
+  0.5000     0.112838     0.407212   0.99519560      6
+  0.3333     0.075225     0.191328   0.99022466     10

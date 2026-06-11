@@ -12,8 +12,8 @@ function load_run(path)
               ζ = d["ζ"], N = d["N"], nmax = d["nmax"], F = d["F"])
 end
 
-A = load_run("ion_GRAPE_state_controls.jld2")  # 1-traj GHZ
-B = load_run("ion_GRAPE_2.jld2")                # 2-traj |↑⟩,|↓⟩
+A = load_run("results/data/ion_GRAPE_state_controls.jld2")  # 1-traj GHZ
+B = load_run("results/data/ion_GRAPE_2.jld2")                # 2-traj |↑⟩,|↓⟩
 
 @printf("\n=== Metadata ===\n")
 @printf("                          %-28s  %-28s\n",
@@ -78,6 +78,6 @@ end
 fig = plot(plts...; layout=(2,2), size=(1100, 750), margin=4Plots.mm,
            plot_title="GRAPE controls: 1-trajectory (GHZ) vs 2-trajectory (|↑⟩,|↓⟩)",
            plot_titlefontsize=12)
-out = "compare_state_vs_two.png"
+out = "results/figures/compare_state_vs_two.png"
 savefig(fig, out)
 @printf("\nOverlay saved to: %s\n", out)

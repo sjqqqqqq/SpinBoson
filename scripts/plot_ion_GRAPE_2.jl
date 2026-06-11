@@ -10,10 +10,10 @@
 #     these don't match the file's run, only the gray "protocol (init)"
 #     dashed curve will be wrong — the GRAPE traces are still the saved data.
 
-include("ion_GRAPE.jl")
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE.jl"))
 
-const JLD2_PATH = length(ARGS) ≥ 1 ? ARGS[1] : "ion_GRAPE_2.jld2"
-const SAVE_PATH = length(ARGS) ≥ 2 ? ARGS[2] : "ion_GRAPE_2_pulses.png"
+const JLD2_PATH = length(ARGS) ≥ 1 ? ARGS[1] : "results/data/ion_GRAPE_2.jld2"
+const SAVE_PATH = length(ARGS) ≥ 2 ? ARGS[2] : "results/figures/ion_GRAPE_2_pulses.png"
 
 data = load(JLD2_PATH)
 ε     = [data["ε1"], data["ε2"], data["ε3"], data["ε4"]]

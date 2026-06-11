@@ -1,15 +1,14 @@
-# ion_GRAPE_state.jl
-# Single-shot GRAPE at T = T_factor · T_ref for N=1, z=1 (T_ref = analytic P=4 tf).
-# One trajectory: |0⟩_b ⊗ |GHZ⟩  →  U_target · (|0⟩_b ⊗ |GHZ⟩).
+# ion_GRAPE_30pct.jl
+# Single-shot GRAPE at T = 0.30 · T_ref for N=1, z=1 (T_ref = analytic P=4 tf).
 # Initial guess: the analytic stroboscopic protocol time-compressed onto the
 # shortened grid (i.e. evaluate `protocol_amplitudes(t · T_ref/T, …)` so that
 # all four ε's complete the full P=4 cycle within T). Stops as soon as F>0.99.
 #
-# Usage: julia --project=. ion_GRAPE_state.jl
+# Usage: julia --project=. ion_GRAPE_30pct.jl
 
-include("ion_GRAPE.jl")
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE.jl"))
 
-function run_state(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
+function run_30pct(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
                     P::Int=4, ℓ::Int=1,
                     nt::Int=300, iter_stop::Int=100,
                     T_factor::Float64=0.30, F_threshold::Float64=0.99,
@@ -23,17 +22,24 @@ function run_state(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
 
     @printf("=== GRAPE @ T = %.2f · T_ref  (early-stop F > %.3f) ===\n",
             T_factor, F_threshold)
-    @printf("N = %d, z = %.3f, P_init = %d, ℓ = %d  (single trajectory: |GHZ⟩)\n",
+    @printf("N = %d, z = %.3f, P_init = %d, ℓ = %d  (two trajectories: |↑⟩, |↓⟩)\n",
             N, z_target, P, ℓ)
     @printf("T_ref = %.6f ms,  T = %.6f ms,  ζ = %.4f\n", T_ref, T, ζ)
     flush(stdout)
 
-    # Single trajectory: ψ₀ = |0⟩_b ⊗ |GHZ⟩,  ψ_target = U_target · ψ₀.
-    ψ0_ket      = build_initial(N, sb; init=:GHZ)
-    ψtarget_ket = build_target(ζ, N, sb; init=:GHZ)
-    init_states   = [Vector{ComplexF64}(ψ0_ket.data)]
-    target_states = [Vector{ComplexF64}(ψtarget_ket.data)]
-    d_V = 1
+    # Two trajectories: |0⟩_b ⊗ |↑⟩  and  |0⟩_b ⊗ |↓⟩, targets = U_target · ψ₀.
+    # In QuantumOptics SpinBasis ordering, idx 1 ↔ |+J⟩ (=|↑⟩), idx end ↔ |−J⟩ (=|↓⟩).
+    vac = fockstate(sb.b_fock, 0)
+    dim_s = N + 1
+    ψ_up   = vac ⊗ basisstate(sb.b_spin, 1)
+    ψ_down = vac ⊗ basisstate(sb.b_spin, dim_s)
+    U_target_op = build_target_unitary(ζ, N, sb)
+    ψ_up_tgt   = U_target_op * ψ_up
+    ψ_down_tgt = U_target_op * ψ_down
+
+    init_states   = [Vector{ComplexF64}(ψ_up.data),     Vector{ComplexF64}(ψ_down.data)]
+    target_states = [Vector{ComplexF64}(ψ_up_tgt.data), Vector{ComplexF64}(ψ_down_tgt.data)]
+    d_V = 2
 
     J_T_fn, chi_fn = make_state_transfer_functionals(target_states)
     H1, H2, H3, H4 = control_operators(sb)
@@ -88,16 +94,17 @@ function run_state(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
     @printf("Converged:   %s\n", res.converged ? "yes" : "no")
     res.converged && @printf("Message:     %s\n", res.message)
     @printf("\n--- Re-propagation diagnostics ---\n")
-    @printf("F:                  %.8f\n", diag.F)
-    @printf("|⟨φ|ψ(T)⟩|:         %.6f\n", abs(diag.overlaps[1]))
-    @printf("arg⟨φ|ψ(T)⟩:        %+.4f rad   (global phase)\n",
-            angle(diag.overlaps[1]))
+    @printf("F (avg over %d traj): %.8f\n", d_V, diag.F)
+    for k in 1:d_V
+        @printf("  trajectory %d: |⟨φ|ψ(T)⟩| = %.6f,  arg = %+.4f rad\n",
+                k, abs(diag.overlaps[k]), angle(diag.overlaps[k]))
+    end
     @printf("Max |1 − ‖ψ(T)‖²|:  %.2e\n", diag.norm_dev)
     flush(stdout)
 
-    plot_pulses(pd, res; save_path="ion_GRAPE_state_pulses.png")
+    plot_pulses(pd, res; save_path="results/figures/ion_GRAPE_30pct_pulses.png")
 
-    save_path = "ion_GRAPE_state_controls.jld2"
+    save_path = "results/data/ion_GRAPE_30pct_controls.jld2"
     jldsave(save_path;
             ε1 = res.optimized_controls[1],
             ε2 = res.optimized_controls[2],
@@ -117,5 +124,5 @@ function run_state(; N::Int=1, nmax::Int=20, z_target::Float64=1.0,
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    run_state()
+    run_30pct()
 end

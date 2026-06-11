@@ -14,7 +14,7 @@
 #
 # Usage: julia --project=. ion_GRAPE_xdisp_polarized.jl
 
-include("ion_GRAPE_displace.jl")
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE_displace.jl"))
 
 if abspath(PROGRAM_FILE) == @__FILE__
     sweep_T_frac([1.0, 0.9, 0.75, 0.5, 1/3];

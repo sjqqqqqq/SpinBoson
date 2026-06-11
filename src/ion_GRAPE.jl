@@ -44,7 +44,7 @@ using LinearAlgebra
 using Printf
 using JLD2
 
-include("SpinBoson_sim.jl")  # build_spinboson, build_target_unitary,
+include(joinpath(@__DIR__, "SpinBoson_sim.jl"))  # build_spinboson, build_target_unitary,
                              # protocol_params, pulse_params
 
 # ===== HELPERS =====
@@ -200,7 +200,7 @@ using Plots
 
 """Four-panel comparison of GRAPE-optimised pulses against the analytic
    stroboscopic initial guess (in kHz, /(2π))."""
-function plot_pulses(prob_data, opt_result; save_path::String="ion_GRAPE_pulses.png")
+function plot_pulses(prob_data, opt_result; save_path::String="results/figures/ion_GRAPE_pulses.png")
     tlist  = prob_data.tlist
     pulses = opt_result.optimized_controls
     init   = initial_controls(prob_data)
@@ -255,7 +255,7 @@ unwrap(a::Vector{Float64}) = unwrap!(copy(a))
    to a π shift in arg(c₁)+arg(c₂), so |c₁|, |c₂| are always plotted as positive
    while the ±g sign appears as π-jumps absorbed into Δ(t)·t and ϕ(t)."""
 function plot_fig4c_style(prob_data, opt_result;
-                          save_path::String="ion_GRAPE_fig4c.png")
+                          save_path::String="results/figures/ion_GRAPE_fig4c.png")
     tlist = prob_data.tlist
     p     = opt_result.optimized_controls
     e1, e2, e3, e4 = p[1], p[2], p[3], p[4]
@@ -385,7 +385,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     plot_pulses(out.problem_data, out.opt_result)
     plot_fig4c_style(out.problem_data, out.opt_result)
 
-    save_path = "ion_GRAPE_controls.jld2"
+    save_path = "results/data/ion_GRAPE_controls.jld2"
     jldsave(save_path;
             ε1    = out.opt_result.optimized_controls[1],
             ε2    = out.opt_result.optimized_controls[2],

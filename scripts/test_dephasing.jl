@@ -19,7 +19,7 @@ using JLD2
 using Printf
 using Plots
 
-include("ion_GRAPE_displace.jl")   # SpinBoson_sim helpers + protocol_amplitudes_ext
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE_displace.jl"))   # SpinBoson_sim helpers + protocol_amplitudes_ext
 
 # ----- noise generator -----
 
@@ -108,11 +108,11 @@ function main(; γ_list = [0.0; 10.0 .^ range(-3, 1, length=11) .* (2π)],
     if pulses === nothing
         pulses = [
             ("protocol",         nothing,                                 1.0,   :black),
-            ("GRAPE T_frac=1",   "ion_GRAPE_displace_controls.jld2",      1.0,   :purple),
-            ("GRAPE T_frac=0.9", "ion_GRAPE_displace_controls_Tfrac900.jld2", 0.9,   :blue),
-            ("GRAPE T_frac=0.75","ion_GRAPE_displace_controls_Tfrac750.jld2", 0.75,  :green),
-            ("GRAPE T_frac=0.5", "ion_GRAPE_displace_controls_Tfrac500.jld2", 0.5,   :orange),
-            ("GRAPE T_frac=1/3", "ion_GRAPE_displace_controls_Tfrac333.jld2", 1/3,   :red),
+            ("GRAPE T_frac=1",   "results/data/ion_GRAPE_displace_controls.jld2",      1.0,   :purple),
+            ("GRAPE T_frac=0.9", "results/data/ion_GRAPE_displace_controls_Tfrac900.jld2", 0.9,   :blue),
+            ("GRAPE T_frac=0.75","results/data/ion_GRAPE_displace_controls_Tfrac750.jld2", 0.75,  :green),
+            ("GRAPE T_frac=0.5", "results/data/ion_GRAPE_displace_controls_Tfrac500.jld2", 0.5,   :orange),
+            ("GRAPE T_frac=1/3", "results/data/ion_GRAPE_displace_controls_Tfrac333.jld2", 1/3,   :red),
         ]
     end
 
@@ -150,8 +150,8 @@ function main(; γ_list = [0.0; 10.0 .^ range(-3, 1, length=11) .* (2π)],
         plot!(fig, γ_plot, r.F; label=r.label, color=r.color, marker=:circle)
     end
     hline!(fig, [0.99]; linestyle=:dot, color=:gray, alpha=0.5, label="")
-    png_path = "$(save_prefix).png"
-    jld_path = "$(save_prefix).jld2"
+    png_path = "results/figures/$(save_prefix).png"
+    jld_path = "results/data/$(save_prefix).jld2"
     savefig(fig, png_path)
     println("\nSaved: ", png_path)
 

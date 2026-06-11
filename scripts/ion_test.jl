@@ -361,7 +361,7 @@ end
 using Plots
 
 """Plot simulation results: 4-panel figure."""
-function plot_results(res; save_path::String="ion_squeezing.png")
+function plot_results(res; save_path::String="results/figures/ion_squeezing.png")
     (; times, fidelities, n_avgs, norms, P, τ, tf, ζ, J,
        psi_final, psi_target, N, nmax, dim_s, dim_b, n_op) = res
 
@@ -452,10 +452,10 @@ if abspath(PROGRAM_FILE) == @__FILE__
     @printf("  Final fidelity: %.6f\n", res.F_final)
 
     # Visualize
-    plot_results(res; save_path="ion_squeezing_N1_z1.png")
+    plot_results(res; save_path="results/figures/ion_squeezing_N1_z1.png")
 
     # Additional: small z, P=1 (near-ideal regime)
     println("\n" * "="^50)
     res2 = simulate(N=1, nmax=20, z_target=0.3, P=1)
-    plot_results(res2; save_path="ion_squeezing_N1_z03.png")
+    plot_results(res2; save_path="results/figures/ion_squeezing_N1_z03.png")
 end

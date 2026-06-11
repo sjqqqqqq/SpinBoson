@@ -22,7 +22,7 @@ using LinearAlgebra
 using Printf
 using JLD2
 
-include("SpinBoson_sim.jl")   # build_spinboson, build_initial, protocol_params,
+include(joinpath(@__DIR__, "SpinBoson_sim.jl"))   # build_spinboson, build_initial, protocol_params,
                               # pulse_params, make_H_dynamic
 
 # ===== HELPERS =====
@@ -282,7 +282,7 @@ end
 
 using Plots
 
-function plot_pulses(prob_data, opt_result; save_path::String="ion_GRAPE_displace_pulses.png")
+function plot_pulses(prob_data, opt_result; save_path::String="results/figures/ion_GRAPE_displace_pulses.png")
     tlist  = prob_data.tlist
     pulses = opt_result.optimized_controls
     init   = initial_controls(prob_data)
@@ -386,8 +386,8 @@ function sweep_T_frac(T_fracs::Vector{Float64};
                      t_free_frac, T_frac=α, nt, iter_stop, F_threshold, xdisp)
         tag = @sprintf("Tfrac%03d", round(Int, 1000*α))
         plot_pulses(out.problem_data, out.opt_result;
-                    save_path="$(save_prefix)_pulses_$tag.png")
-        jldsave("$(save_prefix)_controls_$tag.jld2";
+                    save_path="results/figures/$(save_prefix)_pulses_$tag.png")
+        jldsave("results/data/$(save_prefix)_controls_$tag.jld2";
                 ε1=out.opt_result.optimized_controls[1],
                 ε2=out.opt_result.optimized_controls[2],
                 ε3=out.opt_result.optimized_controls[3],

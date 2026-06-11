@@ -14,7 +14,7 @@ using LinearAlgebra
 using Printf
 using Plots
 
-include("ion_GRAPE_displace.jl")   # protocol_amplitudes_ext, protocol_params
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE_displace.jl"))   # protocol_amplitudes_ext, protocol_params
 
 function rebuild_initial_guess(data)
     tlist     = collect(Float64, data["tlist"])
@@ -40,8 +40,8 @@ function rebuild_initial_guess(data)
     return tlist, T_total, init
 end
 
-function replot_one(jld_path::String; save_path::String=replace(jld_path,
-                                                                ".jld2" => "_norm.png"))
+function replot_one(jld_path::String; save_path::String=joinpath("results", "figures",
+                                                                 replace(basename(jld_path), ".jld2" => "_norm.png")))
     data       = load(jld_path)
     tlist, T_total, init = rebuild_initial_guess(data)
     opt        = [data["ε1"], data["ε2"], data["ε3"], data["ε4"]]
@@ -82,12 +82,12 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     # GHZ files
     for tag in ("Tfrac900", "Tfrac750", "Tfrac500", "Tfrac333")
-        replot_one("ion_GRAPE_displace_controls_$(tag).jld2";
-                   save_path="ion_GRAPE_displace_pulses_$(tag)_norm.png")
+        replot_one("results/data/ion_GRAPE_displace_controls_$(tag).jld2";
+                   save_path="results/figures/ion_GRAPE_displace_pulses_$(tag)_norm.png")
     end
     # Polarized files
     for tag in ("Tfrac1000", "Tfrac900", "Tfrac750", "Tfrac500", "Tfrac333")
-        replot_one("ion_GRAPE_displace_pol_controls_$(tag).jld2";
-                   save_path="ion_GRAPE_displace_pol_pulses_$(tag)_norm.png")
+        replot_one("results/data/ion_GRAPE_displace_pol_controls_$(tag).jld2";
+                   save_path="results/figures/ion_GRAPE_displace_pol_pulses_$(tag)_norm.png")
     end
 end

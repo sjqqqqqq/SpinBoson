@@ -12,7 +12,7 @@
 # The integrals are evaluated segment-by-segment (composite Simpson), so the
 # discontinuities of (g, Δ, ϕ) at segment boundaries are not smoothed across.
 
-include("SpinBoson_sim.jl")
+include(joinpath(@__DIR__, "..", "src", "SpinBoson_sim.jl"))
 
 using LinearAlgebra
 using Printf

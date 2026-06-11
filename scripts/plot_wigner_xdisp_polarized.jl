@@ -14,7 +14,7 @@ using Printf
 using JLD2
 using Plots
 
-include("ion_GRAPE_displace.jl")   # build_target_ext_xdisp, SpinBoson helpers
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE_displace.jl"))   # build_target_ext_xdisp, SpinBoson helpers
 
 function final_state_pulses(sb, jld_path::String; init::Symbol=:polarized)
     data = load(jld_path)
@@ -45,7 +45,7 @@ end
 function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::Int=1,
                 xrange=range(-6.0, 6.0, length=201),
                 prange=range(-6.0, 6.0, length=201),
-                save_path::String="wigner_xdisp_polarized.png")
+                save_path::String="results/figures/wigner_xdisp_polarized.png")
     sb = build_spinboson(N, nmax)
     pp = protocol_params(N, z_target, P, ℓ)
     (; g0, Δ_abs, τ) = pp
@@ -59,11 +59,11 @@ function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::In
 
     pulses = [
         ("protocol (target)",  nothing),
-        ("GRAPE T_frac=1",     "ion_GRAPE_xdisp_pol_controls_Tfrac1000.jld2"),
-        ("GRAPE T_frac=0.9",   "ion_GRAPE_xdisp_pol_controls_Tfrac900.jld2"),
-        ("GRAPE T_frac=0.75",  "ion_GRAPE_xdisp_pol_controls_Tfrac750.jld2"),
-        ("GRAPE T_frac=0.5",   "ion_GRAPE_xdisp_pol_controls_Tfrac500.jld2"),
-        ("GRAPE T_frac=1/3",   "ion_GRAPE_xdisp_pol_controls_Tfrac333.jld2"),
+        ("GRAPE T_frac=1",     "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac1000.jld2"),
+        ("GRAPE T_frac=0.9",   "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac900.jld2"),
+        ("GRAPE T_frac=0.75",  "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac750.jld2"),
+        ("GRAPE T_frac=0.5",   "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac500.jld2"),
+        ("GRAPE T_frac=1/3",   "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac333.jld2"),
     ]
 
     xvec = collect(Float64, xrange)

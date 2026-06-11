@@ -18,7 +18,7 @@ using JLD2
 using Printf
 using Plots
 
-include("test_dephasing.jl")    # make_dephasing_dynamic, fidelity_vs_gamma_pulses
+include(joinpath(@__DIR__, "test_dephasing.jl"))    # make_dephasing_dynamic, fidelity_vs_gamma_pulses
                                 # (also pulls in ion_GRAPE_displace.jl helpers)
 
 # ----- 3-stage protocol under dephasing -----
@@ -94,11 +94,11 @@ function main(; γ_list = [0.0; 10.0 .^ range(-3, 1, length=11) .* (2π)],
 
     pulses = [
         ("protocol",          nothing,                                        1.0,   :black),
-        ("GRAPE T_frac=1",    "ion_GRAPE_xdisp_pol_controls_Tfrac1000.jld2",  1.0,   :purple),
-        ("GRAPE T_frac=0.9",  "ion_GRAPE_xdisp_pol_controls_Tfrac900.jld2",   0.9,   :blue),
-        ("GRAPE T_frac=0.75", "ion_GRAPE_xdisp_pol_controls_Tfrac750.jld2",   0.75,  :green),
-        ("GRAPE T_frac=0.5",  "ion_GRAPE_xdisp_pol_controls_Tfrac500.jld2",   0.5,   :orange),
-        ("GRAPE T_frac=1/3",  "ion_GRAPE_xdisp_pol_controls_Tfrac333.jld2",   1/3,   :red),
+        ("GRAPE T_frac=1",    "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac1000.jld2",  1.0,   :purple),
+        ("GRAPE T_frac=0.9",  "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac900.jld2",   0.9,   :blue),
+        ("GRAPE T_frac=0.75", "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac750.jld2",   0.75,  :green),
+        ("GRAPE T_frac=0.5",  "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac500.jld2",   0.5,   :orange),
+        ("GRAPE T_frac=1/3",  "results/data/ion_GRAPE_xdisp_pol_controls_Tfrac333.jld2",   1/3,   :red),
     ]
 
     @printf("\nγ_list/(2π) [kHz] = %s\n",
@@ -135,8 +135,8 @@ function main(; γ_list = [0.0; 10.0 .^ range(-3, 1, length=11) .* (2π)],
         plot!(fig, γ_plot, r.F; label=r.label, color=r.color, marker=:circle)
     end
     hline!(fig, [0.99]; linestyle=:dot, color=:gray, alpha=0.5, label="")
-    png_path = "$(save_prefix).png"
-    jld_path = "$(save_prefix).jld2"
+    png_path = "results/figures/$(save_prefix).png"
+    jld_path = "results/data/$(save_prefix).jld2"
     savefig(fig, png_path)
     println("\nSaved: ", png_path)
 

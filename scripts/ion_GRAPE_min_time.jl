@@ -7,7 +7,7 @@
 #
 # Usage: julia --project=. ion_GRAPE_min_time.jl
 
-include("ion_GRAPE.jl")
+include(joinpath(@__DIR__, "..", "src", "ion_GRAPE.jl"))
 
 """Linearly resample a control vector defined on `t_old` onto `t_new`."""
 function resample(c::Vector{Float64}, t_old::AbstractVector,
@@ -194,11 +194,11 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Plot pulses + Fig.4(c)-style for the best (shortest) result
     plot_pulses(out.best.pd, out.best.res;
-                save_path="ion_GRAPE_min_time_pulses.png")
+                save_path="results/figures/ion_GRAPE_min_time_pulses.png")
     plot_fig4c_style(out.best.pd, out.best.res;
-                     save_path="ion_GRAPE_min_time_fig4c.png")
+                     save_path="results/figures/ion_GRAPE_min_time_fig4c.png")
 
-    save_path = "ion_GRAPE_min_time_controls.jld2"
+    save_path = "results/data/ion_GRAPE_min_time_controls.jld2"
     jldsave(save_path;
             ε1    = out.best.controls[1],
             ε2    = out.best.controls[2],

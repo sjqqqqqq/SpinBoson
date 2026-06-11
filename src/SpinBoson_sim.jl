@@ -483,7 +483,7 @@ end
 using Plots
 
 """4-panel diagnostic figure: F(t), ⟨n⟩(t), final P(n) vs target, pulse sequence."""
-function plot_results(res; save_path::String="spinboson_sim.png")
+function plot_results(res; save_path::String="results/figures/spinboson_sim.png")
     (; tout, fidelities, n_avgs, P, τ, tf, ζ, N, nmax,
        psi_final, psi_target, Δ_abs, g0, ϕ1, ϕ2) = res
     J = N / 2
@@ -561,7 +561,7 @@ end
 """4-panel pulse + infidelity figure: Δ(t), ϕ(t), g(t), 1−F(t) on a log scale.
    The trailing sample of g(t) is dropped so the final segment-boundary flip
    isn't drawn."""
-function plot_pulse_fidelity(res; save_path::String="spinboson_pulse.png")
+function plot_pulse_fidelity(res; save_path::String="results/figures/spinboson_pulse.png")
     (; tout, fidelities, P, τ, tf, Δ_abs, g0, ϕ1, ϕ2, N, ζ) = res
     t_strobo = hasproperty(res, :t_strobo) ? res.t_strobo : tf
 
@@ -606,7 +606,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     res = simulate(N=1, nmax=20, z_target=0.5, P=5)
     @printf("\nExpected ⟨n⟩ ≈ sinh²(ζJ) = sinh²(0.5) = %.4f\n", sinh(0.5)^2)
     @printf("Final fidelity (GHZ → S(ζJz)|ψ_GHZ⟩): %.6f\n", res.F_final)
-    plot_results(res; save_path="spinboson_QO_N1_z05_GHZ.png")
+    plot_results(res; save_path="results/figures/spinboson_QO_N1_z05_GHZ.png")
 
     println("\n" * "="^60)
     println("Step 2 — State-independent unitary check  U(T) ≟ Eq.(5)")

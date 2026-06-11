@@ -13,7 +13,7 @@ using Printf
 using JLD2
 using Plots
 
-include("SpinBoson_sim.jl")        # build_spinboson, build_initial, protocol_*
+include(joinpath(@__DIR__, "..", "src", "SpinBoson_sim.jl"))        # build_spinboson, build_initial, protocol_*
 
 # ----- propagation helpers -----
 
@@ -77,11 +77,11 @@ function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::In
 
     pulses = [
         ("protocol",          nothing),
-        ("GRAPE T_frac=1",    "ion_GRAPE_displace_pol_controls_Tfrac1000.jld2"),
-        ("GRAPE T_frac=0.9",  "ion_GRAPE_displace_pol_controls_Tfrac900.jld2"),
-        ("GRAPE T_frac=0.75", "ion_GRAPE_displace_pol_controls_Tfrac750.jld2"),
-        ("GRAPE T_frac=0.5",  "ion_GRAPE_displace_pol_controls_Tfrac500.jld2"),
-        ("GRAPE T_frac=1/3",  "ion_GRAPE_displace_pol_controls_Tfrac333.jld2"),
+        ("GRAPE T_frac=1",    "results/data/ion_GRAPE_displace_pol_controls_Tfrac1000.jld2"),
+        ("GRAPE T_frac=0.9",  "results/data/ion_GRAPE_displace_pol_controls_Tfrac900.jld2"),
+        ("GRAPE T_frac=0.75", "results/data/ion_GRAPE_displace_pol_controls_Tfrac750.jld2"),
+        ("GRAPE T_frac=0.5",  "results/data/ion_GRAPE_displace_pol_controls_Tfrac500.jld2"),
+        ("GRAPE T_frac=1/3",  "results/data/ion_GRAPE_displace_pol_controls_Tfrac333.jld2"),
     ]
 
     xvec = collect(Float64, xrange)
@@ -113,8 +113,8 @@ function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::In
     fig = plot(plts...; layout=(2, 3), size=(1500, 950),
                plot_title="Bosonic Wigner W(x, p)  —  |0⟩_b ⊗ |+J⟩ initial state",
                plot_titlefontsize=13, margin=4Plots.mm)
-    savefig(fig, "wigner_polarized.png")
-    println("\nSaved: wigner_polarized.png")
+    savefig(fig, "results/figures/wigner_polarized.png")
+    println("\nSaved: results/figures/wigner_polarized.png")
     return fig
 end
 

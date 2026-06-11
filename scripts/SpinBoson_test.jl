@@ -21,7 +21,7 @@ using LinearAlgebra
 using Printf
 using Plots
 
-include("SpinBoson_sim.jl")   # pulse_params, protocol_params
+include(joinpath(@__DIR__, "..", "src", "SpinBoson_sim.jl"))   # pulse_params, protocol_params
 
 # ===== BASES AND OPERATORS (fock ⊗ spin1 ⊗ spin2) =====
 
@@ -96,7 +96,7 @@ end
 function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::Int=1,
                 xrange=range(-6.0, 6.0, length=201),
                 prange=range(-6.0, 6.0, length=201),
-                save_path::String="spinboson_test.png")
+                save_path::String="results/figures/spinboson_test.png")
     sb = build_spinboson2(N, nmax)
     pp = protocol_params(N, z_target, P, ℓ)
     (; g0, ζ, Δ_abs, τ) = pp

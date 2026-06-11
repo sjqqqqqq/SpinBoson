@@ -12,7 +12,7 @@ using LinearAlgebra
 using Printf
 using Plots
 
-include("SpinBoson_sim.jl")
+include(joinpath(@__DIR__, "..", "src", "SpinBoson_sim.jl"))
 
 """Same stroboscopic Hamiltonian as `make_H_dynamic` for t < t_strobo, but in
    the free segment uses `g0·P̂·(Jx+Jy)` instead of `g0·X̂·(Jx+Jy)`, which
@@ -37,7 +37,7 @@ end
 function main(; N::Int=1, nmax::Int=20, z_target::Float64=0.5, P::Int=1, ℓ::Int=1,
                 xrange=range(-6.0, 6.0, length=201),
                 prange=range(-6.0, 6.0, length=201),
-                save_path::String="protocol_polarized.png")
+                save_path::String="results/figures/protocol_polarized.png")
     sb = build_spinboson(N, nmax)
     pp = protocol_params(N, z_target, P, ℓ)
     (; g0, ζ, Δ_abs, τ) = pp

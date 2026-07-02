@@ -61,11 +61,12 @@ function build_spinboson2(N::Int, nmax::Int)
               aJx1, aJy1, adJx1, adJy1, PJx2, PJy2, n_op)
 end
 
-"""Initial state |0⟩_b ⊗ |+J⟩₁ ⊗ |+J⟩₂  (both spins polarized up)."""
-function build_initial2(sb)
+"""Initial state |0⟩_b ⊗ |s⟩₁ ⊗ |s⟩₂ with spins = :up (|+J⟩, default) or
+   :down (|−J⟩)."""
+function build_initial2(sb; spins::Symbol=:up)
     vac   = fockstate(sb.b_fock, 0)
-    spin1 = basisstate(sb.b_spin1, 1)   # |+J⟩
-    spin2 = basisstate(sb.b_spin2, 1)   # |+J⟩
+    spin1 = spins === :down ? spindown(sb.b_spin1) : spinup(sb.b_spin1)
+    spin2 = spins === :down ? spindown(sb.b_spin2) : spinup(sb.b_spin2)
     return vac ⊗ spin1 ⊗ spin2
 end
 

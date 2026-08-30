@@ -1,14 +1,20 @@
 **/.DS_Store
 **/.claude/
-**/Manifest.toml
 **/.vscode/
 **/.ipynb_checkpoints
 *.txt
 *.png
 CLAUDE.md
-*.jld2
 *.pptx
 *.log
+
+# GRAPE control files are expensive to regenerate, so the ones this branch
+# needs are committed (see results/data/). Everything else stays out.
+*.jld2
+!results/data/ion_GRAPE_2spin_controls.jld2
+!results/data/ion_GRAPE_2spin_controls_Tfrac05.jld2
+!results/data/ion_GRAPE_2spin_down_controls_Tfrac10.jld2
+!results/data/ion_GRAPE_2spin_down_controls_Tfrac05.jld2
 
 # JaqalPaw: vendored upstream clone + its venv, recreated by scripts/setup_jaqalpaw.sh
 third_party/

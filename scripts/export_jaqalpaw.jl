@@ -161,6 +161,9 @@ function export_jaqalpaw(jld2_path::String;
     end
 
     out = Dict{String,Any}(
+        # `source` is the human-readable label both exporters agree on; the
+        # analytic export writes it too, so jaqal/ can print either file.
+        "source"        => "GRAPE controls ($(basename(jld2_path)))",
         "source_file"   => basename(jld2_path),
         "n_samples"     => nt,
         "duration_s"    => T * MS_TO_S,

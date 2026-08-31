@@ -4,13 +4,13 @@
 # Both third_party/ and .venv/ are git-ignored, so this is how you recreate
 # them on a fresh clone. Run from the repo root:
 #
-#   bash scripts/setup_jaqalpaw.sh
+#   bash setup_jaqalpaw.sh
 #
 # Afterwards:
-#   julia --project=. scripts/export_analytic_jaqalpaw.jl   # write the drive JSON
-#   .venv/bin/python jaqal/spinboson_pulses.py              # inspect the PulseData
-#   .venv/bin/python jaqal/verify_waveform.py               # compile + emulate + compare
-#   .venv/bin/jaqalpaw-emulate jaqal/spinboson_analytic.jaqal   # plot the waveform
+#   julia --project=. export_jaqalpaw.jl        # controls -> drive JSON
+#   .venv/bin/python spinboson_pulses.py        # inspect the PulseData
+#   .venv/bin/python verify_waveform.py         # compile + emulate + compare
+#   .venv/bin/jaqalpaw-emulate spinboson_grape.jaqal   # plot the waveform
 
 set -euo pipefail
 

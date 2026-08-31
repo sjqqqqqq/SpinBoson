@@ -1,4 +1,4 @@
-"""End-to-end check of an exported spin-dependent squeezing pulse.
+"""End-to-end check of the exported two-spin GRAPE pulse.
 
 Compiles the gate to RFSoC bytecode, replays it through JaqalPaw's firmware
 emulator, and compares the waveform the hardware would produce against the
@@ -6,23 +6,17 @@ amplitudes and phases in the exported JSON. That covers everything between the
 Julia exporter and the board: the rate-to-amplitude calibration, the discrete
 modulation semantics, phase wrapping, and DDS word quantization.
 
-Works on either export: the analytic protocol (one ion, `SBSqueeze`) or a
-two-spin GRAPE run (two ions on two channels, `SBSqueeze2`). The drive file
-decides which, and it is passed to the compiled gate through
-$SPINBOSON_PULSE_FILE, since a Jaqal program cannot carry a path.
+One wrinkle. JaqalPaw's *emulator* (not its compiler) misattributes updates when
+both tones of a channel step on the same clock cycle: each tone's record comes
+back holding a merge of the two streams. Stagger the two grids and both come
+back exact, so the bytecode is right and only the emulator's bookkeeping is
+confused. Since the real pulse steps both tones together, this script checks one
+sideband per compile via the gate's `tone_mask`, then confirms the full
+four-tone gate compiles.
 
-One wrinkle. JaqalPaw's *emulator* (not its compiler) misattributes updates
-when both tones of a channel step on the same clock cycle: each tone's record
-comes back holding a merge of the two streams. Stagger the two grids and both
-come back exact, so the bytecode is right and only the emulator's bookkeeping
-is confused. Since the real pulse steps both tones together, this script checks
-each sideband in its own compile via the gate's `tone_mask`, then confirms the
-full multi-tone gate compiles.
-
-    .venv/bin/python jaqal/verify_waveform.py
-    .venv/bin/python jaqal/verify_waveform.py --dump results/data/emulated_waveform.json
-    .venv/bin/python jaqal/verify_waveform.py \\
-        --pulse-file results/data/ion_GRAPE_2spin_controls_jaqalpaw.json
+    .venv/bin/python verify_waveform.py
+    .venv/bin/python verify_waveform.py \\
+        --pulse-file results/spinboson_grape_controls_Tfrac50_jaqalpaw.json
 """
 
 import asyncio
@@ -48,22 +42,12 @@ from spinboson_pulses import (  # noqa: E402
     resolve_pulse_file,
 )
 
-ANALYTIC_JAQAL_FILE = os.path.join(HERE, "spinboson_analytic.jaqal")
-GRAPE_JAQAL_FILE = os.path.join(HERE, "spinboson_grape.jaqal")
+JAQAL_FILE = os.path.join(HERE, "spinboson_grape.jaqal")
 
 # Indices into the emulator's per-channel record (byte_decoding.mod_type_dict).
 MOD = {"f0": 0, "a0": 1, "p0": 2, "f1": 3, "a1": 4, "p1": 5}
 
 CIRCUIT = """from .spinboson_pulses usepulses *
-let target {channel}
-let tones {tone_mask}
-register q[8]
-prepare_all
-SBSqueeze q[target] tones
-measure_all
-"""
-
-CIRCUIT2 = """from .spinboson_pulses usepulses *
 let ion1 {channel_a}
 let ion2 {channel_b}
 let tones {tone_mask}
@@ -102,14 +86,9 @@ def emulate(code_bytes, num_channels=8):
     record = {
         c: {
             d: {
-                "time": [0],
-                "data": [0],
-                "waittrig": [0],
-                "enablemask": [0],
-                "fwd_frame0_mask": [0],
-                "inv_frame0_mask": [0],
-                "fwd_frame1_mask": [0],
-                "inv_frame1_mask": [0],
+                "time": [0], "data": [0], "waittrig": [0], "enablemask": [0],
+                "fwd_frame0_mask": [0], "inv_frame0_mask": [0],
+                "fwd_frame1_mask": [0], "inv_frame1_mask": [0],
             }
             for d in range(8)
         }
@@ -165,40 +144,22 @@ def circular_error_deg(a, b):
     return float(np.max(np.abs(d)))
 
 
-def emulate_gate(gp, channels, tone_mask):
-    """Compile and emulate the gate with only `tone_mask` driven.
-
-    Returns the emulator's per-channel record. One or two channels selects
-    `SBSqueeze` or `SBSqueeze2`.
-    """
-    if len(channels) == 1:
-        code = CIRCUIT.format(channel=channels[0], tone_mask=tone_mask)
-    else:
-        code = CIRCUIT2.format(channel_a=channels[0], channel_b=channels[1],
-                               tone_mask=tone_mask)
+def emulate_gate(channels, tone_mask):
+    """Compile and emulate the gate with only `tone_mask` driven."""
+    code = CIRCUIT.format(channel_a=channels[0], channel_b=channels[1],
+                          tone_mask=tone_mask)
     with temp_circuit(code) as path:
         return emulate(compile_bytecode(path))
 
 
-def check_tone(gp, drive, channels, ion_index, tone,
-               amp_tol=0.05, phase_tol=0.5, dump=None, record=None):
-    """Compare one ion's emulated sideband against the exported one.
-
-    `record` is a pre-computed emulator record for this tone (all channels are
-    driven in the same compile, and each channel's stream is independent);
-    without one it is emulated here.
-
-    `dump`, if given, is a dict that collects the emulated and intended traces
-    so they can be plotted (see `scripts/plot_jaqalpaw_export.jl`).
-    """
+def check_tone(gp, drive, channels, ion_index, tone, record,
+               amp_tol=0.05, phase_tol=0.5, dump=None):
+    """Compare one ion's emulated sideband against the exported one."""
     ion = drive["ions"][ion_index]
     channel = channels[ion_index]
     n = drive["n_samples"]
     step_cycles = drive["duration_s"] * CLKFREQ / n
     side = "blue" if tone == 0 else "red"
-
-    if record is None:
-        record = emulate_gate(gp, channels, 1 << tone)
     ch = record[channel]
 
     t_upd, amp = find_gate_updates(ch[MOD[f"a{tone}"]], n, step_cycles)
@@ -213,18 +174,12 @@ def check_tone(gp, drive, channels, ion_index, tone,
 
     freqs = sorted({f for f in ch[MOD[f"f{tone}"]]["data"] if f})
     if dump is not None:
-        # Ion 1 keeps the plain "blue"/"red" keys so single-ion dumps stay the
-        # shape scripts/plot_jaqalpaw_export.jl expects.
-        key = side if ion_index == 0 else f"{side}_ion{ion_index + 1}"
-        dump[key] = {
+        dump[f"ion{ion_index + 1}_{side}"] = {
             "t_s": ((t_upd - t_upd[0]) / CLKFREQ).tolist(),
-            "amp_emulated": amp.tolist(),
-            "amp_intended": want_amp.tolist(),
+            "amp_emulated": amp.tolist(), "amp_intended": want_amp.tolist(),
             "phase_emulated": phase.tolist(),
             "phase_intended": ((want_phase + 180.0) % 360.0 - 180.0).tolist(),
-            "freq_hz": freqs,
-            "amp_err": amp_err,
-            "phase_err": phase_err,
+            "freq_hz": freqs, "amp_err": amp_err, "phase_err": phase_err,
             "channel": channel,
         }
     print(f"  ion {ion_index + 1} ch {channel} tone {tone} ({side:4s}): "
@@ -238,12 +193,9 @@ def check_tone(gp, drive, channels, ion_index, tone,
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    dump_path = None
-    if "--dump" in argv:
-        dump_path = argv[argv.index("--dump") + 1]
-    pulse_file = None
-    if "--pulse-file" in argv:
-        pulse_file = argv[argv.index("--pulse-file") + 1]
+    dump_path = argv[argv.index("--dump") + 1] if "--dump" in argv else None
+    pulse_file = (argv[argv.index("--pulse-file") + 1]
+                  if "--pulse-file" in argv else None)
 
     # The compiled gate resolves its drive file independently of this process's
     # objects, so hand it over through the environment before compiling.
@@ -253,35 +205,34 @@ def main(argv=None):
     gp = SpinBosonPulses()
     drive = load_drive(pulse_file)
     n = drive["n_samples"]
-    n_ions = len(drive["ions"])
-    if n_ions > 2:
-        print(f"{drive['source']} drives {n_ions} ions; only 1- and 2-ion "
-              "drives are supported.")
+    if len(drive["ions"]) != 2:
+        print(f"{drive['source']} drives {len(drive['ions'])} ion(s); expected 2.")
         return 1
-    channels = [gp.target0, gp.target1][:n_ions]
-    jaqal_file = ANALYTIC_JAQAL_FILE if n_ions == 1 else GRAPE_JAQAL_FILE
+    channels = [gp.target0, gp.target1]
 
     print("=== exported drive ===")
     print(f"  {drive['source']}")
     print(f"  {drive['duration_s'] * 1e6:.3f} us, {n} samples "
           f"({drive['duration_s'] * CLKFREQ / n:.2f} clock cycles per step)")
-    print(f"  {n_ions} ion(s) on channel(s) {channels}")
+    print(f"  2 ions on channels {channels}")
+    if "F" in drive:
+        print(f"  GRAPE F = {drive['F']:.6f}  (T_frac = {drive.get('T_frac')})")
 
     print("\n=== per-sideband waveform check ===")
     dump = {} if dump_path else None
     ok = True
     for tone in (0, 1):
-        # One compile per tone; every channel's stream comes back in the same
-        # record, and only the two tones of one channel confuse the emulator.
-        record = emulate_gate(gp, channels, 1 << tone)
-        for ion_index in range(n_ions):
-            ok &= check_tone(gp, drive, channels, ion_index, tone,
-                             dump=dump, record=record)
+        # One compile per tone; both channels come back in the same record, and
+        # only the two tones of ONE channel confuse the emulator.
+        record = emulate_gate(channels, 1 << tone)
+        for ion_index in (0, 1):
+            ok &= check_tone(gp, drive, channels, ion_index, tone, record,
+                             dump=dump)
 
-    print("\n=== full gate ===")
-    code = compile_bytecode(jaqal_file)
+    print("\n=== full four-tone gate ===")
+    code = compile_bytecode(JAQAL_FILE)
     n_words = len(code) // 32
-    print(f"  {os.path.basename(jaqal_file)} compiles: "
+    print(f"  {os.path.basename(JAQAL_FILE)} compiles: "
           f"{len(code)} bytes ({n_words} 256-bit words)")
 
     if dump_path:

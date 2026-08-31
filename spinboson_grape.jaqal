@@ -1,0 +1,25 @@
+// Two-spin GRAPE pulse for spin-dependent squeezing.
+//
+// Pulses come from results/spinboson_grape_controls_Tfrac*_jaqalpaw.json, written by
+//   julia --project=. spinboson_grape.jl        // optimize (slow, ~35 min)
+//   julia --project=. export_jaqalpaw.jl        // convert to JSON
+//
+// The gate reads whichever drive file $SPINBOSON_PULSE_FILE names, defaulting to
+// the T_frac = 1 export, so pick the horizon before compiling or emulating:
+//
+//   SPINBOSON_PULSE_FILE=results/spinboson_grape_controls_Tfrac50_jaqalpaw.json \
+//       .venv/bin/jaqalpaw-emulate -s spinboson_grape.jaqal
+
+from .spinboson_pulses usepulses *
+
+// RFSoC channels of the two addressed ions (Q0, Q1 in QSCOUTBuiltins).
+let ion1 2
+let ion2 3
+
+register q[8]
+
+prepare_all
+
+SBSqueeze2 q[ion1] q[ion2]
+
+measure_all

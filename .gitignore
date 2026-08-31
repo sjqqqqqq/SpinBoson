@@ -3,22 +3,25 @@
 **/.vscode/
 **/.ipynb_checkpoints
 *.txt
-*.png
-CLAUDE.md
-*.pptx
 *.log
+*.pptx
+CLAUDE.md
 
-# GRAPE control files are expensive to regenerate, so the ones this branch
-# needs are committed (see results/data/). Everything else stays out.
-*.jld2
-!results/data/ion_GRAPE_2spin_controls.jld2
-!results/data/ion_GRAPE_2spin_controls_Tfrac05.jld2
-!results/data/ion_GRAPE_2spin_down_controls_Tfrac10.jld2
-!results/data/ion_GRAPE_2spin_down_controls_Tfrac05.jld2
+# Generated outputs. The GRAPE controls are expensive (~40 min each) and the
+# figures are the record of those runs, so both are committed. The exported
+# drive JSON is regenerated from the controls in seconds by export_jaqalpaw.jl.
+results/*.json
 
-# JaqalPaw: vendored upstream clone + its venv, recreated by scripts/setup_jaqalpaw.sh
+# Scratch working area and slide material from the wider project; the sources
+# this branch ships live at the repo root.
+temp/
+docs/
+results/data/
+results/figures/
+results/logs/
+
+# JaqalPaw: vendored upstream clone and its virtualenv, recreated by
+# setup_jaqalpaw.sh
 third_party/
 .venv/
 __pycache__/
-# Exported drive files are regenerated from the JLD2 controls
-results/data/*.json

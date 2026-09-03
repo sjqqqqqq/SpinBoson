@@ -229,7 +229,7 @@ if __name__ == "__main__":
     print(f"samples       : {drive['n_samples']}  "
           f"({drive['sample_dt_s'] * 1e9:.1f} ns per step)")
     if "F" in drive:
-        print(f"GRAPE fidelity: {drive['F']:.6f}  (T_frac = {drive.get('T_frac')})")
+        print(f"fidelity      : {drive['F']:.6f}  (T_frac = {drive.get('T_frac')})")
 
     print("\n=== calibration (placeholders until the control software overwrites) ===")
     print(f"mode frequency: {gp.sb_mode_frequency / 1e6:.4f} MHz")

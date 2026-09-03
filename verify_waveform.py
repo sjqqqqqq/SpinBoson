@@ -216,7 +216,7 @@ def main(argv=None):
           f"({drive['duration_s'] * CLKFREQ / n:.2f} clock cycles per step)")
     print(f"  2 ions on channels {channels}")
     if "F" in drive:
-        print(f"  GRAPE F = {drive['F']:.6f}  (T_frac = {drive.get('T_frac')})")
+        print(f"  F = {drive['F']:.6f}  (T_frac = {drive.get('T_frac')})")
 
     print("\n=== per-sideband waveform check ===")
     dump = {} if dump_path else None

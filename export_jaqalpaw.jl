@@ -119,8 +119,11 @@ function export_jaqalpaw(jld2_path::String;
         ))
     end
 
+    # Both the analytic pulse and the GRAPE result use this schema; say which.
+    kind = occursin("analytic", basename(jld2_path)) ? "analytic pulse" : "GRAPE controls"
+
     out = Dict{String,Any}(
-        "source"      => "GRAPE controls ($(basename(jld2_path)))",
+        "source"      => "$kind ($(basename(jld2_path)))",
         "n_samples"   => nt,
         "duration_s"  => T * MS_TO_S,
         "sample_dt_s" => (tlist[2] - tlist[1]) * MS_TO_S,

@@ -327,9 +327,15 @@ end
 
 # ===== MAIN =====
 
-"""Optimize both horizons, plot each, and save the controls."""
+"""Optimize both horizons, plot each, and save the controls.
+
+Also writes the analytic pulse in the same format (see `save_analytic_controls`)
+so `export_jaqalpaw.jl` has all three drives to convert. Only at T_frac = 1: the
+time-compressed analytic pulse reaches F = 0.42, so it is a GRAPE starting point,
+not a pulse to put on hardware."""
 function main(; nmax::Int=30, nt::Int=250, iter_stop::Int=200,
                 T_fracs=(1.0, 0.5))
+    save_analytic_controls(; T_frac=1.0, nmax, nt)
     outs = Dict{Float64,Any}()
     for T_frac in T_fracs
         out = run_grape(; T_frac, nmax, nt, iter_stop)

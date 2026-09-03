@@ -153,14 +153,97 @@ in the amplitudes and phases. Exported rates are Rabi rates in Hz, phases in deg
 H/ħ = 2π·(r_red/2)·e^{−iφ_red}·a·σ₊ + 2π·(r_blue/2)·e^{−iφ_blue}·a†·σ₊ + h.c.
 ```
 
+### A worked example: one sample, end to end
+
+The map is per time sample and per ion, so one sample shows the whole conversion.
+Take the 100th of the 250 samples for ion 1 of the `T_frac = 0.5` GRAPE run — `t =
+0.0449 ms` of `T = 0.1128 ms`. GRAPE's four controls there are
+
+```
+(ε1, ε2, ε3, ε4) = (−9.3814, −36.1255, +8.8638, −35.5157)  rad/ms
+```
+
+Apply the map:
+
+```
+A = (ε1 − ε4)/2 − i(ε2 + ε3)/2 = (−9.3814 + 35.5157)/2 − i(−36.1255 + 8.8638)/2
+  = +13.0671 + 13.6309i  rad/ms
+B = (ε1 + ε4)/2 + i(ε2 − ε3)/2 = (−9.3814 − 35.5157)/2 + i(−36.1255 − 8.8638)/2
+  = −22.4486 − 22.4947i  rad/ms
+```
+
+Convert to Rabi rates (`r = 2|A|·1000/2π` Hz) and phases (`φ = −arg A`, degrees):
+
+```
+r_red  =  6010.5 Hz   φ_red  =  −46.21°
+r_blue = 10115.8 Hz   φ_blue = +134.94°
+```
+
+Those four numbers are the 100th entries of `red_rate_hz`, `red_phase_deg`,
+`blue_rate_hz` and `blue_phase_deg` under the first ion of
+`results/spinboson_grape_controls_Tfrac50_jaqalpaw.json`. Finally `sb_rate_to_amp`
+divides by the full-scale sideband rate — `η · 0.5/counter_resonant_pi_time` =
+41.667 kHz with the placeholder calibration — to get the beam amplitude the RFSoC
+actually programs:
+
+```
+red  6010.5 Hz → 14.43/100        blue 10115.8 Hz → 24.28/100
+```
+
+So at that step of the modulation list, `PulseData` on ion 1's channel holds
+`amp1 = 14.43`, `phase1 = −46.21` on tone 1 (red) and `amp0 = 24.28`,
+`phase0 = +134.94` on tone 0 (blue), with both tone frequencies fixed at
+`ia_center ∓ mode`. Repeat for all 250 samples and both ions and the pulse is done.
+
 ### Pipeline
 
 ```bash
-julia --project=. export_jaqalpaw.jl              # controls → results/*_jaqalpaw.json + figures
-.venv/bin/python spinboson_pulses.py             # PulseData summary + calibration headroom
-.venv/bin/python verify_waveform.py              # compile → emulate → compare  (PASS)
-.venv/bin/python verify_waveform.py \
-    --pulse-file results/spinboson_grape_controls_Tfrac50_jaqalpaw.json
+DRIVE=results/spinboson_grape_controls_Tfrac50_jaqalpaw.json
+
+julia --project=. export_jaqalpaw.jl              # every .jld2 → results/*_jaqalpaw.json + figures
+.venv/bin/python spinboson_pulses.py    $DRIVE    # PulseData summary + calibration headroom
+.venv/bin/python verify_waveform.py --pulse-file $DRIVE   # compile → emulate → compare  (PASS)
+```
+
+Both Python steps take an explicit file; with no argument they use the `T_frac = 1` export.
+Following the same `T_frac = 0.5` pulse as the worked example above, step 1 reports the
+round-trip residual and the peak rate it is asking for:
+
+```
+spinboson_grape_controls_Tfrac50.jld2 -> spinboson_grape_controls_Tfrac50_jaqalpaw.json
+  250 samples, T = 0.1128 ms, dt = 0.4532 us
+  round-trip residual: 3.55e-15 rad/ms (should be ~1e-14)
+  ion 1: max red 13.701 kHz, max blue 13.181 kHz
+  ion 2: max red 12.555 kHz, max blue 12.623 kHz
+```
+
+Step 2 turns that into `PulseData` and shows the calibration headroom — three pulses,
+one global and two individual, each individual channel carrying two modulated tones:
+
+```
+=== calibration (placeholders until the control software overwrites) ===
+mode frequency: 2.1000 MHz
+channel 2: sideband @ amp 100 = 41.7 kHz (eta = 0.1)
+ion 1 on channel 2: peak 13.701 kHz -> amplitude 32.9/100
+ion 2 on channel 3: peak 12.623 kHz -> amplitude 30.3/100
+
+=== PulseData ===
+  channel 0: 46218 clock cycles (112.838 us)
+    tone 0: freq 200.000000 MHz, amp 1 pt(s), phase 1 pt(s)
+  channel 2: 46218 clock cycles (112.838 us)
+    tone 0: freq 232.100000 MHz, amp 250 pt(s), phase 250 pt(s)
+    tone 1: freq 227.900000 MHz, amp 250 pt(s), phase 250 pt(s)
+```
+
+Step 3 compiles, emulates and compares:
+
+```
+  ion 1 ch 2 tone 0 (blue): amp err  0.0030 (tol 0.05), phase err  0.0000 deg (tol 0.5)  ok
+      freq [232.1] MHz, amp range 0.06-31.63/100
+  ...
+  spinboson_grape.jaqal compiles: 72448 bytes (2264 256-bit words)
+
+PASS
 ```
 
 `verify_waveform.py` is the real end-to-end test: it compiles the gate to RFSoC bytecode,
